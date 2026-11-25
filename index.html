@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#1a1060">
+  <title>GHOST KIRO 幽靈競速</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <canvas id="speedlines"></canvas>
+
+  <!-- 遊戲中 HUD -->
+  <div id="hud" class="hidden">
+    <div class="hud-tl">
+      <div class="rank-box"><span id="hud-rank-label">名次</span><b id="hud-rank">1</b><small id="hud-rank-total">/6</small></div>
+      <div class="item-box"><div id="hud-item" class="item-slot">—</div><span class="item-hint">E / Enter 使用</span></div>
+    </div>
+    <div class="hud-tc">
+      <div id="hud-lap">圈數 1/3</div>
+      <div id="hud-time">00:00.00</div>
+      <div id="hud-extra"></div>
+      <div id="hud-ghost"></div>
+    </div>
+    <div class="hud-tr">
+      <button id="btn-pause" class="icon-btn" aria-label="暫停">⏸</button>
+      <div class="map-wrap">
+        <canvas id="minimap" width="200" height="200"></canvas>
+        <ol id="hud-board"></ol>
+      </div>
+    </div>
+    <div class="hud-bl">
+      <div class="speed"><b id="hud-speed">0</b><span>km/h</span></div>
+      <div class="bar"><i id="hud-speedbar"></i></div>
+    </div>
+    <div class="hud-bc">
+      <div class="energy-label"><span>👻 幽靈能量</span><span class="ability"><em id="ab-boost">Space 加速</em><em id="ab-phase">Shift 穿越</em></span></div>
+      <div class="bar energy"><i id="hud-energy"></i></div>
+    </div>
+    <div id="hud-drift"></div>
+    <div id="toast"></div>
+  </div>
+
+  <div id="menu-toast"></div>
+  <div id="countdown"></div>
+  <div id="flash"></div>
+
+  <!-- 觸控按鈕 -->
+  <div id="touch" class="hidden">
+    <div class="t-left">
+      <button class="tbtn big" data-act="left">◀</button>
+      <button class="tbtn big" data-act="right">▶</button>
+    </div>
+    <div class="t-right">
+      <button class="tbtn" data-act="item">🎁<small>道具</small></button>
+      <button class="tbtn" data-act="phase">👻<small>穿越</small></button>
+      <button class="tbtn" data-act="boost">⚡<small>加速</small></button>
+      <button class="tbtn small" data-act="brake">⛔<small>煞車</small></button>
+    </div>
+  </div>
+
+  <!-- 首頁 -->
+  <section id="screen-home" class="screen">
+    <div class="panel home">
+      <div class="logo"><span class="l1">GHOST</span><span class="l2">KIRO</span></div>
+      <p class="tagline">幽靈競速 · 與你的殘影一較高下</p>
+      <div class="menu">
+        <button class="btn primary" data-go="screen-modes">▶ 開始遊戲</button>
+        <button class="btn" data-go="screen-online">🌐 線上多人</button>
+        <button class="btn" data-go="screen-garage">👻 車庫（角色與賽車）</button>
+        <button class="btn" data-go="screen-maps">🗺️ 選擇地圖</button>
+        <button class="btn" data-go="screen-settings">⚙️ 遊戲設定</button>
+        <button class="btn" data-go="screen-records">🏆 最佳紀錄</button>
+      </div>
+      <div class="coins">🪙 <b id="home-coins">0</b></div>
+      <div class="help">
+        <b>操作</b>　自動前進　◀ ▶ / A D 轉向　↓ / S 煞車<br>
+        Space 幽靈加速　Shift 幽靈穿越　E / Enter 使用道具　Esc 暫停<br>急轉彎時持續轉向會漂移，蓄力越久，放開後氮氣越強<br>
+        手機：使用畫面上的按鈕（建議橫向遊玩）
+      </div>
+    </div>
+  </section>
+
+  <!-- 模式選擇 -->
+  <section id="screen-modes" class="screen hidden">
+    <div class="panel wide">
+      <h2>選擇模式</h2>
+      <div id="mode-list" class="cards"></div>
+      <button class="btn small" data-go="screen-home">← 返回</button>
+    </div>
+  </section>
+
+  <!-- 地圖選擇 -->
+  <section id="screen-maps" class="screen hidden">
+    <div class="panel wide">
+      <h2 id="maps-title">選擇地圖</h2>
+      <div id="map-list" class="cards"></div>
+      <div id="laps-row" class="laps-row"><span>比賽圈數</span><span id="laps-btns" class="chips"></span></div>
+      <div id="maps-note" class="note2"></div>
+      <div class="menu row">
+        <button class="btn small" data-go="screen-modes">← 返回</button>
+        <button id="btn-map-go" class="btn primary">▶ 出發</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 車庫 -->
+  <section id="screen-garage" class="screen hidden sheet">
+    <div class="panel wide garage">
+      <div class="garage-head">
+        <h2>車庫</h2>
+        <div id="garage-tabs" class="tabs">
+          <button class="tab" data-tab="char">角色</button>
+          <button class="tab" data-tab="kart">賽車</button>
+          <button class="tab" data-tab="look">外觀</button>
+        </div>
+        <div class="coins">🪙 <b id="garage-coins">0</b></div>
+        <button class="btn small" data-go="screen-home">← 返回</button>
+      </div>
+      <div id="garage-body"></div>
+    </div>
+  </section>
+
+  <!-- 線上多人：連線 -->
+  <section id="screen-online" class="screen hidden">
+    <div class="panel">
+      <h2>線上多人</h2>
+      <div id="net-status" class="net-status">⚪ 尚未連線</div>
+      <label class="field"><span>暱稱</span><input id="net-name" maxlength="12" autocomplete="off" spellcheck="false"></label>
+      <div class="menu">
+        <button id="btn-room-create" class="btn primary" disabled>＋ 建立房間</button>
+        <div class="join-row">
+          <input id="net-code" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="輸入 6 位房號" autocomplete="off">
+          <button id="btn-room-join" class="btn" disabled>加入</button>
+        </div>
+      </div>
+      <div id="net-error" class="net-error"></div>
+      <p class="note2">目前完成：房間、房號、玩家同步、準備、房主規則、邀請連結。即時賽車同步尚未完成。</p>
+      <button class="btn small" data-go="screen-home">← 返回</button>
+    </div>
+  </section>
+
+  <!-- 線上多人：房間 -->
+  <section id="screen-room" class="screen hidden">
+    <div class="panel wide room">
+      <div class="room-head">
+        <h2>房間 <span id="room-code" class="code">------</span></h2>
+        <div class="room-actions">
+          <button id="btn-copy-code" class="btn small">複製房號</button>
+          <button id="btn-copy-link" class="btn small">複製邀請連結</button>
+          <button id="btn-line" class="btn small line">LINE 分享</button>
+        </div>
+      </div>
+      <div id="room-conn" class="net-status"></div>
+      <div class="room-body">
+        <div class="room-players">
+          <h3>玩家 <span id="room-count"></span></h3>
+          <ul id="room-list"></ul>
+        </div>
+        <div class="room-side">
+          <h3>比賽規則</h3>
+          <div class="setting"><span>地圖</span><select id="room-map"></select></div>
+          <div class="setting"><span>圈數</span><select id="room-laps"><option value="2">2 圈</option><option value="3">3 圈</option><option value="5">5 圈</option></select></div>
+          <div class="setting"><span>不足人數補 AI</span><input id="room-ai" type="checkbox"></div>
+          <p id="room-rules-note" class="note2"></p>
+          <h3>我的角色</h3>
+          <div id="room-chars" class="chips"></div>
+        </div>
+      </div>
+      <div class="menu row">
+        <button id="btn-ready" class="btn primary">✔ 準備</button>
+        <button id="btn-start" class="btn primary hidden">▶ 開始比賽（同步倒數）</button>
+        <button id="btn-leave" class="btn">離開房間</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 線上多人：同步倒數 / 比賽中（測試畫面） -->
+  <section id="screen-mpstart" class="screen hidden dim">
+    <div class="panel">
+      <h2 id="mp-title">比賽即將開始</h2>
+      <div id="mp-count" class="mp-count">3</div>
+      <div id="mp-info" class="note2"></div>
+      <div class="notice">⚠ 線上即時賽車同步<b>尚未完成</b>。目前只完成房間與「所有玩家同時倒數」，賽車畫面同步是下一階段。</div>
+      <div class="menu row">
+        <button id="btn-mp-reset" class="btn primary hidden">結束並返回大廳</button>
+        <span id="mp-wait" class="note2">等待房主返回大廳…</span>
+        <button id="btn-mp-leave" class="btn">離開房間</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 設定 -->
+  <section id="screen-settings" class="screen hidden">
+    <div class="panel">
+      <h2>遊戲設定</h2>
+      <div class="setting"><span>音效與音樂</span><button id="set-sound" class="btn small"></button></div>
+      <div class="setting"><span>畫質（需重新整理才完整套用）</span><button id="set-quality" class="btn small"></button></div>
+      <div class="setting"><span>AI 難度</span><button id="set-diff" class="btn small"></button></div>
+      <div class="setting"><span>車手數量</span><button id="set-racers" class="btn small"></button></div>
+      <div class="setting"><span>清除所有紀錄與金幣</span><button id="btn-reset" class="btn small danger">清除</button></div>
+      <button class="btn small" data-go="screen-home">← 返回</button>
+    </div>
+  </section>
+
+  <!-- 紀錄 -->
+  <section id="screen-records" class="screen hidden">
+    <div class="panel">
+      <h2>最佳紀錄</h2>
+      <table class="table" id="records-table"></table>
+      <button class="btn small" data-go="screen-home">← 返回</button>
+    </div>
+  </section>
+
+  <!-- 暫停 -->
+  <section id="screen-pause" class="screen hidden dim">
+    <div class="panel">
+      <h2>已暫停</h2>
+      <div class="menu">
+        <button id="btn-resume" class="btn primary">▶ 繼續</button>
+        <button id="btn-restart" class="btn">🔄 重新開始</button>
+        <button id="btn-quit" class="btn">🏠 回主選單</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 結算 -->
+  <section id="screen-results" class="screen hidden dim">
+    <div class="panel wide">
+      <h2 id="res-title"></h2>
+      <div id="res-body"></div>
+      <div class="menu row">
+        <button id="btn-again" class="btn primary">🔄 再玩一次</button>
+        <button id="btn-next" class="btn">⏭ 下一場比賽</button>
+        <button id="btn-menu" class="btn">🏠 主選單</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="error" class="hidden"></div>
+
+  <script src="vendor/three.min.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/maps.js"></script>
+  <script src="js/track.js"></script>
+  <script src="js/scenery.js"></script>
+  <script src="js/kart.js"></script>
+  <script src="js/fx.js"></script>
+  <script src="js/items.js"></script>
+  <script src="js/racer.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/race.js"></script>
+  <script src="js/net.js"></script>
+  <script src="js/menus.js"></script>
+  <script src="js/lobby.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
